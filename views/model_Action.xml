@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="action_form_view" model="ir.ui.view">
+            <field name="name">form_custom_actions.action.form</field>
+            <field name="model">form_custom_actions.action</field>
+            <field name="arch" type="xml">
+                <form string="ModelTitle">
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="name"/>
+                            <h1>
+                                <field name="name" />
+                            </h1>
+                        </div>
+                        <group>
+                            <field name="type"/>
+                        </group>
+                        <notebook>
+                            <page string="Blog" attrs="{'invisible':[('type', '!=', 'blog')]}">
+                                <group>
+                                    <field name="blog"/>
+                                    <p>
+                                        This action takes these fields:
+                                        <ul>
+                                            <li>name</li>
+                                            <li>content</li>
+                                            <li>subtitle</li>
+                                        </ul>
+                                    </p>
+                                </group>
+                            </page>
+                            <page string="Script" attrs="{'invisible':[('type', '!=', 'script')]}">
+                                <group>
+                                    <field name="script"/>
+                                    <p>
+                                        the python code can use the self object which is a formio.Form record
+                                    </p>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_tree_view" model="ir.ui.view">
+            <field name="name">form_custom_actions.action.tree</field>
+            <field name="model">form_custom_actions.action</field>
+            <field name="arch" type="xml">
+                <tree string="action">
+                    <field name="name"/>
+                    <field name="type"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_formio_custom_actions_view_tree" model="ir.actions.act_window">
+            <field name="name">View Custom Actions</field>
+            <field name="res_model">form_custom_actions.action</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="action_tree_view"/>
+        </record>
+
+        <menuitem name="Actions"
+                  id="menu_formio_custom_actions_actions"
+                  action="action_formio_custom_actions_view_tree"
+                  parent="formio.menu_formio_configuration"
+                  sequence="25"/>
+    </data>
+</odoo>

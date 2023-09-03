@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_formio_builder_inherit" model="ir.ui.view">
+            <field name="name">formio.builder.form.inherit</field>
+            <field name="model">formio.builder</field>
+            <field name="inherit_id" ref="formio.view_formio_builder_form"/>
+            <field name="priority" eval="8"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='backend_use_obsolete']" position="after">
+                    <field name="user_id"/>
+                </xpath>
+                <xpath expr="//notebook" position="inside">
+                    <page string="Actions" name="custom_actions">
+                        <field name="action_ids">
+                            <tree>
+                                <field name="name"/>
+                                <field name="type"/>
+                            </tree>
+                        </field>
+                    </page>
+                </xpath>
+                <xpath expr="//field[@name='portal_url']" position="before">
+                    <field name="website_ids" widget="many2many_tags"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
