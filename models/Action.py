@@ -11,6 +11,21 @@ class Action(models.Model):
     script = fields.Text()
     blog = fields.Many2one('blog.blog')
 
+    def partner_get_aussteller(self, partner_id):
+        while partner_id.parent_id:
+            partner_id = partner_id.parent_id
+
+        av_child = self.env['res.partner'].search([
+            ('parent_id', '=', partner_id.id),
+            ('type', '=', 'av')
+        ], limit=1)
+
+        if av_child:
+            partner_id = av_child
+
+        return partner_id
+
+
 
     def execute(self, form_record):
 
@@ -38,7 +53,8 @@ class Action(models.Model):
                 raise Exception('Attribute ' + attr + ' not found in form data')
             req[attr] = form_data[attr]
 
-        req['author_id'] = form_record.res_partner_id.id
+        author = self.partner_get_aussteller(form_record.res_partner_id)
+        req['author_id'] = author.id
         req['blog_id'] = self.blog.id
         req['is_published'] = False
 
