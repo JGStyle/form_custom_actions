@@ -40,7 +40,7 @@ class FormioCustomerPortalInherit(FormioCustomerPortal):
         domain = [
             ('user_id', '=', request.env.user.id),
             ('portal_share', '=', True),
-            # '|', ('website_ids', '=', False), ('website_ids', 'in', request.website.id)
+            '|', ('website_ids', '=', False), ('website_ids', 'in', request.website.id)
         ]
         res_model = kwargs.get('res_model')
         res_id = kwargs.get('res_id')
