@@ -6,13 +6,18 @@ class Action(models.Model):
     _description = 'Action to be executed after form submission'
 
     name = fields.Char()
-    type = fields.Selection([('script', 'Script'), ('blog', 'Blog'), ('debug', 'Debug')], default='blog')
+    type = fields.Selection([('script', 'Script'), ('blog', 'Blog'), ('debug', 'Debug'), ('av', 'AV Kontaktdaten')], default='blog')
 
     script = fields.Text()
     blog = fields.Many2one('blog.blog')
 
     def partner_get_aussteller(self, partner_id):
         while partner_id.parent_id:
+            print("-- -- --")
+            print(partner_id)
+            print(partner_id.name)
+            print(partner_id.parent_id)
+            print(partner_id.parent_id.type)
             partner_id = partner_id.parent_id
 
         av_child = self.env['res.partner'].search([
@@ -20,11 +25,21 @@ class Action(models.Model):
             ('type', '=', 'av')
         ], limit=1)
 
+
+
+        did_find_av = False
+
         if av_child:
             partner_id = av_child
+            did_find_av = True
 
-        return partner_id
+        print("-- -- --")
+        print(partner_id)
+        print(partner_id.name)
+        print(partner_id.parent_id)
+        print(partner_id.parent_id.type)
 
+        return [partner_id, did_find_av]
 
 
     def execute(self, form_record):
@@ -35,6 +50,8 @@ class Action(models.Model):
             self.execute_blog(form_record)
         elif self.type == 'debug':
             self.execute_debug(form_record)
+        elif self.type == 'av':
+            self.execute_av(form_record)
         else:
             raise Exception('Unknown action type: ' + self.type)
 
@@ -53,7 +70,36 @@ class Action(models.Model):
                 raise Exception('Attribute ' + attr + ' not found in form data')
             req[attr] = form_data[attr]
 
-        author = self.partner_get_aussteller(form_record.res_partner_id)
+
+
+        if 'image' in form_data:
+            # print("image found")
+            list_uploads = form_data['image']
+            # type(list_uploads)
+            # print("list_uploads: " + str(list_uploads))
+            first_upload = list_uploads[0]
+            # type(first_upload)
+            # print("first_upload: " + str(first_upload))
+            first_upload_url = first_upload['url']
+            # type(first_upload_url)
+            # print("first_upload_url: " + first_upload_url)
+
+            # remove protocol and domain
+            first_upload_url = first_upload_url.replace('http://', '')
+            first_upload_url = first_upload_url.replace('https://', '')
+            first_upload_url = first_upload_url.split('/')[1:]
+            first_upload_url = '/' + '/'.join(first_upload_url)
+
+            req['cover_properties'] = json.dumps({
+                'background-image': 'url(' + first_upload_url +')',
+                'background_color_class': 'o_cc3 o_cc',
+                'background_color_style': '',
+                'opacity': 0.2,
+                'resize_class': 'o_half_screen_height o_record_has_cover',
+                'text_align_class': '',
+            })
+
+        author = self.partner_get_aussteller(form_record.res_partner_id)[0]
         req['author_id'] = author.id
         req['blog_id'] = self.blog.id
         req['is_published'] = False
@@ -81,10 +127,113 @@ class Action(models.Model):
         })
 
     def execute_debug(self, form_data):
+        submission_data = json.loads(form_data.submission_data)
         print('== DEBUG ==')
         print(form_data)
-        print(form_data.name)
-        print(form_data.content)
-        print(form_data.author_id)
-        print(self.blog.id)
+        for key in submission_data:
+            print(key + ': ' + str(submission_data[key]))
         print('== DEBUG END ==')
+
+    def execute_av(self, form_record):
+        submission_data = json.loads(form_record.submission_data)
+        author_l = self.partner_get_aussteller(form_record.submission_partner_id)
+        user_id = form_record.builder_id.user_id if form_record.builder_id.user_id else self.env.user
+
+        author = author_l[0]
+        did_find_av = author_l[1]
+
+        print("===")
+        print("===")
+        print("===")
+        print('did_find_av: ' + str(did_find_av))
+        print(author)
+        print(author.id)
+        print(author.name)
+        print("===")
+        print("===")
+        print("===")
+
+        if not did_find_av:
+
+            # Create AV
+            av = self.env['res.partner'].create({
+                'name': author.name,
+                'type': 'av',
+                'parent_id': author.id
+            })
+
+            author = av
+
+        # Update AV data
+        author.write({
+            'name': submission_data['name'],
+            'firma1': submission_data['firma1'],
+            'firma2': submission_data['firma2'],
+            'street': submission_data['street'],
+            'street2': submission_data['street2'],
+            'zip': submission_data['zip'],
+            'city': submission_data['city'],
+            'phone': submission_data['phone'],
+            'email': submission_data['email'],
+            'website': submission_data['website'],
+        })
+
+        # update parent
+        author.parent_id.write({
+            'firma1': submission_data['firma1'],
+            'firma2': submission_data['firma2'],
+            'website': submission_data['website'],
+        })
+
+
+
+        # notify user
+        body_message = ''' 
+Changed data due to AV Kontaktdaten action:
+name: %s -> %s
+firma1: %s -> %s
+firma2: %s -> %s
+street: %s -> %s
+street2: %s -> %s
+zip: %s -> %s
+city: %s -> %s
+phone: %s -> %s
+email: %s -> %s
+website: %s -> %s
+
+@%s
+        ''' % ( author.name, submission_data['name'],
+                author.firma1, submission_data['firma1'],
+                author.firma2, submission_data['firma2'],
+                author.street, submission_data['street'],
+                author.street2, submission_data['street2'],
+                author.zip, submission_data['zip'],
+                author.city, submission_data['city'],
+                author.phone, submission_data['phone'],
+                author.email, submission_data['email'],
+                author.website, submission_data['website'],
+                user_id.name
+                )
+
+        author.message_post(
+            body=body_message,
+            message_type='notification',
+            subtype_id=self.env.ref('mail.mt_comment').id,
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

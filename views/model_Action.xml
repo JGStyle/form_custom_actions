@@ -39,6 +39,23 @@
                                     </p>
                                 </group>
                             </page>
+                            <page string="Ausstellerverzeichnis" attrs="{'invisible':[('type', '!=', 'av')]}">
+                                    <p>
+                                        This action takes these fields:
+                                        <ul>
+                                            <li>name</li>
+                                            <li>firma1</li>
+                                            <li>firma2</li>
+                                            <li>street</li>
+                                            <li>street2</li>
+                                            <li>zip</li>
+                                            <li>city</li>
+                                            <li>phone</li>
+                                            <li>email</li>
+                                            <li>website</li>
+                                        </ul>
+                                    </p>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>

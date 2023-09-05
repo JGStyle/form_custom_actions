@@ -16,8 +16,7 @@
     'version': '0.2',
     'license': 'LGPL-3',
 
-    # any module necessary for this one to work correctly
-    'depends': ['base', 'website', 'website_blog', 'formio'],
+    'depends': ['base', 'website', 'website_blog', 'formio', 'rectanglemaps', 'jws'],
 
     # always loaded
     'data': [
